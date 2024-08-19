@@ -66,6 +66,7 @@ def llamacpp_model(selected_model, selected_model_name):
     if selected_model_name in [
         "llamacpp_llama2_7b_cpu",
         "llamacpp_llama2_7b_gpu",
+        "llamacpp_llama3_9b_cpu",
         "llamacpp_gemma2_9b_cpu",
         "llamacpp_phi3_mini_4k_instruct_cpu",
         "llamacpp_mistral_7b_cpu",

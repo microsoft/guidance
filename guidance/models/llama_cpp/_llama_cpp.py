@@ -89,9 +89,28 @@ class LlamaCppTokenizer(Tokenizer):
         )
 
     def encode(self, byte_string: bytes) -> Sequence[int]:
+        # Some models (e.g. Llama3) can produce tokens which are only partial
+        # UTF-8 codepoints. The underlying tokenizer can't cope with these
+        # and has a tendency to segfault.
+        # To address this, shorten the bytes sent to the tokenizer to a valid
+        # UTF-8 value
+        # I hope this will not bite us with some subtle other bug in future
+        bytes_to_encode = b""
+        got_bytes_to_encode = False
+        for i in range(0, 3):
+            # Recall that a UTF-8 codepoint can be up to 3 bytes long
+            try:
+                bytes_to_encode = byte_string[0 : len(byte_string) - i]
+                _ = bytes_to_encode.decode()
+                got_bytes_to_encode = True
+                break
+            except UnicodeDecodeError:
+                pass
+        if not got_bytes_to_encode:
+            raise ValueError(f"Failed to shorten {byte_string!r} to valid unicode")
         # Workaround for the LlamaCpp prepending spaces on encoding
         raw_tokens = self._model_obj.tokenize(
-            self._sentinel_bytes + byte_string, add_bos=False, special=True
+            self._sentinel_bytes + bytes_to_encode, add_bos=False, special=True
         )
         assert raw_tokens[: len(self._sentinel_tokens)] == self._sentinel_tokens
         return raw_tokens[len(self._sentinel_tokens) :]

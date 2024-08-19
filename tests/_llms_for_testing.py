@@ -63,6 +63,10 @@ _LLAMA_3 = {
         name="transformers:meta-llama/Meta-Llama-3-8B-Instruct",
         kwargs={"trust_remote_code": True, "torch_dtype": torch.bfloat16, "device_map": "cuda:0"},
     ),
+    "llamacpp_llama3_9b_cpu": dict(
+        name="huggingface_hubllama:bartowski/Meta-Llama-3-8B-Instruct-GGUF:Meta-Llama-3-8B-Instruct-IQ3_S.gguf",
+        kwargs={"verbose": True, "n_ctx": 4096},
+    ),
 }
 
 _MISTRAL = {

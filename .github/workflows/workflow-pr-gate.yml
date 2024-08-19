@@ -67,6 +67,7 @@ jobs:
           - "transformers_phi2_cpu"
           # - "transformers_mistral_7b_cpu" See Issue 713
           - "llamacpp_llama2_7b_cpu"
+          - "llamacpp_llama3_9b_cpu"
           - "llamacpp_mistral_7b_cpu"
           - "transformers_phi3_mini_4k_instruct_cpu"
           - "llamacpp_phi3_mini_4k_instruct_cpu"
@@ -108,6 +109,7 @@ jobs:
           - "transformers_phi2_cpu"
           # - "transformers_mistral_7b_cpu" See Issue 713
           - "llamacpp_llama2_7b_cpu"
+          - "llamacpp_llama3_9b_cpu"
           - "llamacpp_mistral_7b_cpu"
           - "transformers_phi3_mini_4k_instruct_cpu"
           - "llamacpp_phi3_mini_4k_instruct_cpu"
@@ -153,6 +155,7 @@ jobs:
           - "transformers_phi2_cpu"
           # - "transformers_mistral_7b_cpu" See Issue 713
           - "llamacpp_llama2_7b_cpu"
+          - "llamacpp_llama3_9b_cpu"
           - "llamacpp_mistral_7b_cpu"
           # - "transformers_phi3_mini_4k_instruct_cpu" Gives trouble on MacOS
           - "llamacpp_phi3_mini_4k_instruct_cpu"
@@ -193,6 +196,7 @@ jobs:
           - "transformers_phi2_cpu"
           # - "transformers_mistral_7b_cpu" See Issue 713
           - "llamacpp_llama2_7b_cpu"
+          - "llamacpp_llama3_9b_cpu"
           - "llamacpp_mistral_7b_cpu"
           - "transformers_phi3_mini_4k_instruct_cpu"
           - "llamacpp_phi3_mini_4k_instruct_cpu"

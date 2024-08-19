@@ -21,6 +21,13 @@ def test_fstring_custom(selected_model):
     assert str(lm) in ["this is a test another item1", "this is a test another item2"]
 
 
+def test_with_multitokenchars(selected_model: guidance.models.Model):
+    # Taken from https://github.com/guidance-ai/guidance/issues/934
+    lm = selected_model
+    lm += "歪" + select(["打正着", "门邪道"])
+    assert str(lm) == "歪打正着" or str(lm) == "歪门邪道"
+
+
 def test_token_count(selected_model):
     lm = selected_model
     lm2 = lm + " 1 1 1 1 1" + gen(max_tokens=9) + gen(max_tokens=9)
@@ -36,9 +43,7 @@ def test_token_healing(selected_model):
     if model_type != "GPT2LMHeadModel":
         pytest.skip("Test for GPT2 bug only")
     gpt2 = selected_model
-    lm = gpt2 + (
-        "This is a story of 10 or 5 or " + zero_or_more(byte_range(b"0", b"9"))
-    )
+    lm = gpt2 + ("This is a story of 10 or 5 or " + zero_or_more(byte_range(b"0", b"9")))
     assert len(lm) > len("This is a story of 10 or 5 or ")
 
 
