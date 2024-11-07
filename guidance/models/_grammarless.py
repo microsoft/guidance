@@ -258,7 +258,7 @@ class GrammarlessEngine(Engine):
         self._last_stream_start = self._data
 
     def get_next_token(
-        self, token_ids: list[int], mask: Optional[bytes], temperature: float) -> int:
+        self, prompt: str, token_ids: list[int], mask: Optional[bytes], temperature: float, media: Optional[dict]=None) -> int:
 
         logger.debug(
             f"Start Grammarless.get_next_token({token_ids=}, {mask=}, {temperature=})"

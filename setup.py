@@ -38,6 +38,7 @@ extras_requires = {
     "openai": ["openai>=1.0"],
     "schemas": ["jsonschema"],
     "server": ["fastapi-slim", "uvicorn"],
+    "image": ["pillow"]
 }
 
 # Create the union of all our requirements

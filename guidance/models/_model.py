@@ -1,5 +1,7 @@
 import base64
 import copy
+from dataclasses import dataclass
+from enum import Enum
 import html
 import logging
 import queue
@@ -28,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 from .._schema import EngineCallResponse, GuidanceEngineMetrics
 from .._utils import softmax, CaptureEvents
-from .._parser import TokenParser
+from .._parser import TokenParser, create_token_parser
 from .._grammar import (
     GrammarFunction,
     string,
@@ -51,7 +53,21 @@ nodisp_pattern = re.compile(
     r"&lt;\|\|_#NODISP_\|\|&gt;.*?&lt;\|\|_/NODISP_\|\|&gt;", flags=re.DOTALL
 )
 html_pattern = re.compile(r"&lt;\|\|_html:(.*?)_\|\|&gt;", flags=re.DOTALL)
-image_pattern = re.compile(r"&lt;\|_image:(.*?)\|&gt;")
+image_pattern = re.compile(r"&lt;\|_IMAGE:(.*?)\|&gt;")
+
+
+class Modality(Enum):
+    TEXT = 1
+    IMAGE = 2
+    AUDIO = 3
+    VIDEO = 4
+    IMAGE_URL = 5
+    AUDIO_URL = 6
+    VIDEO_URL = 7
+
+modality_pattern = re.compile(
+    r"<\|_(" + "|".join(modality.name for modality in Modality) + r"):(.*?)\|>"
+)
 
 
 class Engine:
@@ -74,7 +90,7 @@ class Engine:
     def reset_metrics(self):
         self.metrics = GuidanceEngineMetrics()
 
-    def start(self, prompt, grammar, ensure_bos_token=True) -> TokenParser:
+    def start(self, prompt, grammar, media: Optional[dict]=None, ensure_bos_token=True) -> TokenParser:
         """Start processing parser state executed through the grammar.
 
         Parameters
@@ -109,14 +125,14 @@ class Engine:
         else:
             raise Exception("The passed prompt is of an unknown type!")
 
-        return TokenParser(
+        return create_token_parser(
             grammar=grammar,
             tokenizer=self.tokenizer,
             prompt=prompt,
             ensure_bos_token=ensure_bos_token
         )
 
-    def __call__(self, prompt, grammar, ensure_bos_token=True) -> Iterator[EngineCallResponse]:
+    def __call__(self, prompt, grammar, media: Optional[dict]=None, ensure_bos_token=True) -> Iterator[EngineCallResponse]:
         """Main entry point for the inference-parser loop. Yields EngineCallResponse objects as
         the parser advances through the grammar.
 
@@ -130,8 +146,10 @@ class Engine:
             inferencing the model. (TODO: implement full parser extension support)
         grammar: Grammar
             This is the grammar we are extending the prompt with.
+        media: dict
+            An optional dictionary mapping placeholder IDs in the prompt to multimodal data bytes.
         """
-        parser = self.start(prompt, grammar, ensure_bos_token)
+        parser = self.start(prompt, grammar, media, ensure_bos_token)
 
         token = None
         while not parser.done():
@@ -143,16 +161,20 @@ class Engine:
                     # but we will treat any "illegal" tokens as EOS, allowing the model to finish gracefully.
                     assert gen_data.mask[self.tokenizer.eos_token_id]
                     token = self.get_next_token(
+                        prompt,
                         token_ids=gen_data.tokens,
                         mask=None,
+                        media=media,
                         temperature=gen_data.temperature
                     )
                     if not gen_data.mask[token]:
                         token = self.tokenizer.eos_token_id
                 else:
                     token = self.get_next_token(
+                        prompt,
                         token_ids=gen_data.tokens,
                         mask=gen_data.mask,
+                        media=media,
                         temperature=gen_data.temperature
                     )
             else:
@@ -160,15 +182,15 @@ class Engine:
 
             yield response
 
-    def get_next_token(self, token_ids: list[int], mask: Optional[bytes], temperature: float) -> int:
+    def get_next_token(self, prompt: bytes, token_ids: list[int], mask: Optional[bytes], temperature: float, media: Optional[dict]=None) -> int:
         """Base implementation for getting the next token from the model which calls get_logits and sample_with_temperature.
         Subclasses may override this method, e.g. if they use external APIs that do not support getting logits directly.
         """
-        logits = self.get_logits(token_ids)
+        logits = self.get_logits(prompt, token_ids, media)
         token = self.sample_with_temperature(logits, mask, temperature)
         return token
 
-    def get_logits(self, token_ids: list[int]) -> np.ndarray:
+    def get_logits(self, prompt: bytes, token_ids: list[int], media: Optional[dict]=None) -> np.ndarray:
         raise NotImplementedError
 
     def sample_with_temperature(self, logits: np.ndarray, mask: Optional[bytes], temperature: float) -> int:
@@ -188,7 +210,6 @@ class Engine:
             "We can't consume any more tokens, but we are not yet done! Perhaps your model's token set is incomplete? This happened after the prompt:"
             + str(prompt[-40:])
         )
-
 
 class Model:
     """The base guidance model object, which represents a model in a given state.
@@ -392,6 +413,25 @@ class Model:
     def _current_prompt(self):
         """The current prompt in bytes (which is the state without the context close tags)."""
         return format_pattern.sub("", self._state)
+
+
+    def _create_media_dict(self) -> dict:
+        """
+        Find multimodal placeholders in the prompt string and create a dictionary
+        containing the multimodal data.
+        """
+        media_dict = {}
+
+        prompt = self._current_prompt()
+        for match in modality_pattern.finditer(prompt):
+            # Add the current match
+            content_key = match.group(2)
+            content = self.get(content_key)
+            if content is None:
+                raise KeyError(f"Model does not contain the multimodal data with id '{content_key}'")
+            media_dict[content_key] = content
+
+        return media_dict
 
     def __str__(self):
         """A string representation of the current model object (that includes context closers)."""
@@ -614,6 +654,14 @@ class Model:
         else:
             copy = self
         return copy
+    
+    def append_multimodal(self, data, modality: Modality):
+        """
+        Appends multimodal data to the model's state.
+        """
+        copy = self.set(str(id(data)), data)
+        copy._inplace_append(f"<|_{modality.name}:{str(id(data))}|>")
+        return copy
 
     def log_prob(self, key, default=None):
         """Return the log prob of a variable, or a default value if the variable is not present.
@@ -686,8 +734,11 @@ class Model:
         # replace ModelVariables with their actual values (note we save what we replaced so we can restore it later)
         replacements = replace_model_variables(stateless_function, self)
 
+        # get the multimodal data
+        media = self._create_media_dict()
+
         # start the generation stream
-        gen_obj = self.engine(self._current_prompt(), stateless_function)
+        gen_obj = self.engine(self._current_prompt(), stateless_function, media)
 
         # we will return a new extended version of ourselves, which we track as `lm`
         lm = self
