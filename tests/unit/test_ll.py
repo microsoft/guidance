@@ -10,6 +10,7 @@ from guidance import (
     optional,
     byte_range,
     one_or_more,
+    zero_or_more,
     GrammarFunction,
     string,
     capture,
@@ -358,6 +359,76 @@ def test_ll_max_tokens():
         + gen("height", max_tokens=3),
         ["Name‧:", " Em‧ily", " Carter‧ is‧ great‧;‧ Height‧:", " ‧5‧'‧6"],
     )
+
+class TestRecursiveNullableGrammars:
+    """
+    Recursive nullable grammars can give an infinite parse tree, so we need to check
+    that the parser can handle them.
+    See section "One Last Trap" of https://loup-vaillant.fr/tutorials/earley-parsing/parser
+    """
+
+    def test_simple_recursive_nullable(self):
+        """
+        A -> A
+        A -> ϵ
+
+        Loop occurs because `A -> A` is a nullable loop
+        """
+        # Note that we get a different grammar if we made `A = select([''], recurse=True)`; this is kind of contrived
+        A = select([])
+        A.values = [A, ""]
+        check_grammar(A, ["", "≺EOS≻"])
+
+    def test_realistic_recursive_nullable(self):
+        """
+        A -> A B
+        A -> ϵ
+        B -> "x"
+        B -> ϵ
+
+        Loop occurs because `A -> A B`, is a nullable loop
+
+        This grammar can arise if user specifies a grammar like:
+        ```
+            grm = zero_or_more(optional("x"))
+        ```
+        """
+        B = select(["x", ""])
+        A = select([])
+        A.values = [A + B, ""]
+        check_grammar(A, ["", "≺EOS≻"])
+        check_grammar(A, ["", "x‧≺EOS≻"])
+        check_grammar(A, ["", "x‧x‧≺EOS≻"])
+
+        # Also check the more natural way of specifying the grammar
+        grm = zero_or_more(optional("x"))
+        check_grammar(grm, ["", "≺EOS≻"])
+        check_grammar(grm, ["", "x‧≺EOS≻"])
+        check_grammar(grm, ["", "x‧x‧≺EOS≻"])
+
+    def test_complex_recursive_nullable(self):
+        """
+        A -> A C
+        A -> B
+        A -> ϵ
+        B -> A
+        C -> 'x'
+
+        Loop occurs because `A -> B`, `B -> A` jointly form a nullable loop
+        """
+        C = string("x")
+        # Will fill in values later: [A + C, B, ""]
+        A = select([])
+        # B = join([A]) # doesn't exist, so we use select here, bypassing singleton unwrapping
+        B = select([])
+        B.values = [A]
+        assert B is not A
+        # Fill in values
+        A.values = [A + C, B, ""]
+
+        # Both of these are valid parses
+        check_grammar(A, ["", "≺EOS≻"])
+        check_grammar(A, ["", "x‧≺EOS≻"])
 
 
 def test_ll_fighter():
