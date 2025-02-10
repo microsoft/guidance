@@ -9,11 +9,13 @@ from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from guidance import assistant, gen, models, system, user
 
 from ..model_specific import common_chat_testing
-from ..utils import env_or_skip
+from ..utils import env_or_skip, slowdown
 
 
 @pytest.fixture(scope="function")
-def azureai_chat_model(rate_limiter):
+def azureai_chat_model():
+    slowdown()
+
     azureai_endpoint = env_or_skip("AZUREAI_CHAT_ENDPOINT")
     model = env_or_skip("AZUREAI_CHAT_MODEL")
 
@@ -48,7 +50,9 @@ def test_azureai_openai_chat_longer_2(azureai_chat_model):
 
 
 @pytest.mark.skip(reason="resource has been temporarily blocked")
-def test_azureai_openai_chat_alt_args(rate_limiter):
+def test_azureai_openai_chat_alt_args():
+    slowdown()
+
     azureai_endpoint = env_or_skip("AZUREAI_CHAT_ENDPOINT")
     model = env_or_skip("AZUREAI_CHAT_MODEL")
 
@@ -74,7 +78,9 @@ def test_azureai_openai_chat_alt_args(rate_limiter):
 
 
 @pytest.mark.skip(reason="resource has been temporarily blocked")
-def test_azureai_openai_completion_smoke(rate_limiter):
+def test_azureai_openai_completion_smoke():
+    slowdown()
+
     azureai_endpoint = env_or_skip("AZUREAI_COMPLETION_ENDPOINT")
     model = env_or_skip("AZUREAI_COMPLETION_MODEL")
 
@@ -99,7 +105,9 @@ def test_azureai_openai_completion_smoke(rate_limiter):
 
 
 @pytest.mark.skip(reason="resource has been temporarily blocked")
-def test_azureai_openai_completion_alt_args(rate_limiter):
+def test_azureai_openai_completion_alt_args():
+    slowdown()
+
     azureai_endpoint = env_or_skip("AZUREAI_COMPLETION_ENDPOINT")
     model = env_or_skip("AZUREAI_COMPLETION_MODEL")
 

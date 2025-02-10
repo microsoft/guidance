@@ -4,7 +4,7 @@ from guidance import models
 
 
 from ..model_specific import common_chat_testing
-from ..utils import env_or_fail
+from ..utils import env_or_fail, slowdown
 
 pytest.skip("Deployments temporarily deleted", allow_module_level=True)
 
@@ -32,19 +32,25 @@ def _get_chat_model(model_name: str):
 
 
 @pytest.mark.parametrize("chat_model_name", _chat_models.keys())
-def test_azureai_chat_smoke(rate_limiter, chat_model_name: str):
+def test_azureai_chat_smoke(chat_model_name: str):
+    slowdown()
+
     lm = _get_chat_model(chat_model_name)
 
     common_chat_testing.smoke_chat(lm, chat_model_name != "mistral")
 
 
 @pytest.mark.parametrize("chat_model_name", _chat_models.keys())
-def test_azureai_chat_longer_1(rate_limiter, chat_model_name: str):
+def test_azureai_chat_longer_1(chat_model_name: str):
+    slowdown()
+
     lm = _get_chat_model(chat_model_name)
     common_chat_testing.longer_chat_1(lm, chat_model_name != "mistral")
 
 
 @pytest.mark.parametrize("chat_model_name", _chat_models.keys())
-def test_azureai_chat_longer_2(rate_limiter, chat_model_name: str):
+def test_azureai_chat_longer_2(chat_model_name: str):
+    slowdown()
+
     lm = _get_chat_model(chat_model_name)
     common_chat_testing.longer_chat_2(lm, chat_model_name != "mistral")
