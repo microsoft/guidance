@@ -57,40 +57,29 @@ class RawFunction(Function):
         self.kwargs = kwargs
 
     def __call__(self, model):
-        return self.f(model, *self.args, **self.kwargs)
+        model = self.f(model, *self.args, **self.kwargs)
+        if model is None:
+            raise Exception(
+                f"The guidance function `{self.f.__name__}` did not return a model object! You need to return an updated model object at the end of your guidance function."
+            )
+        return model
 
     def __add__(self, other):
-
-        # if we are joining with a string we use the string representation for ourselves
-        if isinstance(other, str):
-            return str(self) + other
-
+        if not isinstance(other, (str, bytes, Function)):
+            return NotImplemented
         def __add__(model):
             model = self(model)
-            if model is None:
-                raise Exception(
-                    f"The guidance function `{self.f.__name__}` did not return a model object! You need to return an updated model object at the end of your guidance function."
-                )
-            if isinstance(other, GrammarFunction):
-                return model + other
-            else:
-                return other(model)
-
+            model += other
+            return model
         return RawFunction(__add__, [], {})
 
     def __radd__(self, other):
-
-        # if we are joining with a string we use the string representation for ourselves
-        if isinstance(other, str):
-            return other + str(self)
-
+        if not isinstance(other, (str, bytes, Function)):
+            return NotImplemented
         def __radd__(model):
-            if isinstance(other, GrammarFunction):
-                model += other
-            else:
-                model = other(model)
-            return self(model)
-
+            model += other
+            model = self(model)
+            return model
         return RawFunction(__radd__, [], {})
 
 
@@ -142,9 +131,8 @@ class GrammarFunction(Function):
         if isinstance(value, GrammarFunction):
             return Join([self, value])
 
-        # otherwise we let the stateful object handle things
-        else:
-            return value.__radd__(self)
+        # otherwise we let the other object handle things
+        return NotImplemented
 
     def __radd__(self, value):
 
@@ -159,9 +147,8 @@ class GrammarFunction(Function):
         if isinstance(value, GrammarFunction):
             return Join([value, self])
 
-        # otherwise we let the stateful object handle things
-        else:
-            return value.__add__(self)
+        # otherwise we let the other object handle things
+        return NotImplemented
 
     def __getitem__(self, value):
         raise StatefulException("GrammarFunctions can't access state!")
