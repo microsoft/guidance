@@ -3,6 +3,7 @@ from ._model import Model, Instruct, Chat
 # local models
 from .transformers._transformers import Transformers, TransformersTokenizer
 from .llama_cpp import LlamaCpp
+from ._ollama import Ollama
 from ._mock import Mock, MockChat
 
 # grammarless models (we can't do constrained decoding for them)
