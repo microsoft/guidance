@@ -10,8 +10,34 @@ import weakref
 import functools
 import numpy as np
 import logging
+from typing import Union, cast
+import pathlib
+import urllib
+import http
+import re
 
 logger = logging.getLogger(__name__)
+
+
+def bytes_from(src: Union[str, pathlib.Path, bytes], allow_local: bool) -> bytes:
+    if isinstance(src, str) and re.match(r"[^:/]+://", src):
+        with urllib.request.urlopen(src) as response:
+            response = cast(http.client.HTTPResponse, response)
+            bytes_data = response.read()
+
+    # ...from a local path
+    elif allow_local and (isinstance(src, str) or isinstance(src, pathlib.Path)):
+        with open(src, "rb") as f:
+            bytes_data = f.read()
+
+    # ...from audio file bytes
+    elif isinstance(src, bytes):
+        bytes_data = src
+
+    else:
+        raise Exception(f"Unable to load bytes from {src}!")
+
+    return bytes_data
 
 
 class _Rewrite(ast.NodeTransformer):

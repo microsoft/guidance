@@ -29,6 +29,7 @@ from ..trace import (
     CaptureOutput,
     TraceHandler,
 )
+from ..trace._trace import AudioOutput, AudioInput, VideoInput, VideoOutput
 from ..visual import (
     TraceMessage,
     AutoRenderer,
@@ -1130,6 +1131,10 @@ class Model:
             out = lm
             out._update_trace_node(out._id, out._parent_id, value)
         elif isinstance(value, CaptureOutput):
+            out = lm
+            out._update_trace_node(out._id, out._parent_id, value)
+        elif isinstance(value, (AudioOutput, AudioInput, VideoInput, VideoOutput)):
+            # TODO(nopdive): This is used for testing, consider removing when fully attached to model execution.
             out = lm
             out._update_trace_node(out._id, out._parent_id, value)
         elif isinstance(value, str):

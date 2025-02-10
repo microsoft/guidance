@@ -1,6 +1,5 @@
 # TODO(nopdive): Consider integrating token operations into trace nodes (handles token healing cleaner).
 # TODO(nopdive): Benchmark (expected heap fragmentation issue). Likely need memory pooling (via rust/ctypes/Cython).
-# TODO(nopdive): Integrate images when PR for multimodal is in.
 import weakref
 from itertools import count
 from typing import Any, Optional, Generator, Dict
@@ -66,11 +65,20 @@ class LiteralInput(InputAttr):
     value: str
 
 
-# NOTE(nopdive): Placeholder, needs to be filled once multimodal PR is in.
 class ImageInput(InputAttr):
     """Image input."""
 
-    value: bytes
+    value: str
+
+
+class AudioInput(InputAttr):
+    """Audio input."""
+    value: str
+
+
+class VideoInput(InputAttr):
+    """Video input."""
+    value: str
 
 
 class EmbeddedInput(InputAttr):
@@ -100,6 +108,25 @@ class RoleCloserInput(InputAttr):
     text: Optional[str] = None
 
 
+class AudioOutput(OutputAttr):
+    """Audio output."""
+    value: str
+    is_input: bool = False
+
+
+class VideoOutput(OutputAttr):
+    """Video output."""
+    value: str
+    is_input: bool = False
+
+
+class ImageOutput(OutputAttr):
+    """Image output."""
+
+    value: str
+    is_input: bool = False
+
+
 class TextOutput(OutputAttr):
     """Text string."""
 
@@ -115,14 +142,6 @@ class TextOutput(OutputAttr):
 
     def __str__(self):
         return self.value
-
-
-# NOTE(nopdive): Placeholder, needs to be filled once multimodal PR is in.
-class ImageOutput(OutputAttr):
-    """Image as bytes."""
-
-    value: bytes
-
 
 class CaptureOutput(OutputAttr):
     """Capture variable output as a string.

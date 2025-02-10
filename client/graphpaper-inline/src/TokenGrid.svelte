@@ -1,6 +1,7 @@
 <!-- Token grid that exposes each token and hover info. -->
 <script lang="ts">
-    import {isRoleOpenerInput, isTextOutput, type NodeAttr, type RoleOpenerInput, type GenTokenExtra} from './stitch';
+    import {isRoleOpenerInput, isTextOutput, isAudioOutput, type NodeAttr, type RoleOpenerInput, type GenTokenExtra} from './stitch';
+    import CustomAudio from "./CustomAudio.svelte";
     import TokenGridItem from "./TokenGridItem.svelte";
     import {type Token, type TokenCallback} from "./interfaces";
     import {longhover} from "./longhover";
@@ -133,6 +134,7 @@
         return [overlapped, noSpecialOverride];
     }
 
+    let audioNode = null; // Store the first audio node found (hack)
     let tokens: Array<Token> = [];
     let activeOpenerRoles: Array<RoleOpenerInput> = [];
     let activeCloserRoleText: Array<string> = [];
@@ -194,6 +196,10 @@
                     specialSet.add(token.text);
                     tokens.push(token);
                     activeOpenerRoles.pop();
+                }
+            } else if (isAudioOutput(nodeAttr)) {
+                if (audioNode === null) {
+                    audioNode = nodeAttr;
                 }
             }
         }
@@ -515,5 +521,12 @@
                 </span>
             {/if}
         </span>
+
+        {#if audioNode !== null}
+            <div class="my-3">
+                <CustomAudio audioData={audioNode.value} />
+            </div>
+        {/if}
+
     </div>
 </div>

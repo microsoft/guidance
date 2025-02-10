@@ -1,6 +1,8 @@
 # import functions that can be called directly
 from ._gen import gen, call_tool, will_gen, regex
-from ._image import image
+from ._image import image, gen_image
+from ._audio import audio, gen_audio
+from ._video import video, gen_video
 from ._capture import capture
 
 # core grammar functions
