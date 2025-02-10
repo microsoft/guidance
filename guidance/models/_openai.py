@@ -23,6 +23,7 @@ class OpenAIEngine(GrammarlessEngine):
         client_class=client_class,
         **kwargs,
     ):
+        self.logit_bias = None
 
         if client_class is None:
             raise Exception(
@@ -61,6 +62,7 @@ class OpenAIEngine(GrammarlessEngine):
                 top_p=1.0,  # TODO: this should be controllable like temp (from the grammar)
                 temperature=temperature,
                 stream=True,
+                logit_bias=self.logit_bias,
             )
             self.metrics.engine_input_tokens += len(self.tokenizer.encode(prompt))
         except Exception as e:
@@ -135,6 +137,7 @@ class OpenAIEngine(GrammarlessEngine):
                 top_p=1.0,  # TODO: this should be controllable like temp (from the grammar)
                 temperature=temperature,
                 stream=True,
+                logit_bias=self.logit_bias,
             )
             self.metrics.engine_input_tokens += input_token_count
 
@@ -160,6 +163,9 @@ class OpenAIEngine(GrammarlessEngine):
         else:
             # Otherwise we are in a chat context
             return self._generator_chat(prompt, temperature)
+
+    def set_logit_bias(self, logit_bias):
+        self.logit_bias = logit_bias
 
 
 class OpenAI(Grammarless):

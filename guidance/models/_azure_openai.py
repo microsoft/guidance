@@ -101,3 +101,6 @@ class AzureOpenAI(Grammarless):
             engine_instance,
             echo=echo,
         )
+
+    def set_logit_bias(self, logit_bias):
+        self.engine.set_logit_bias(logit_bias)
